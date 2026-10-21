@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Aethelrun 3D</title>
+    <title>Aethelrun - Delhi Metro Rush</title>
     <style>
         * {
             margin: 0;
@@ -17,12 +17,6 @@
             background-color: #0b0c10;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        #game-canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
-        /* UI Overlay */
         #ui-layer {
             position: absolute;
             top: 0;
@@ -43,19 +37,27 @@
             margin: 0 auto;
         }
         .stat-box {
-            background: rgba(0, 0, 0, 0.65);
-            border: 2px solid #00ffcc;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #ff9933;
             color: #fff;
             padding: 10px 20px;
             border-radius: 12px;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 800;
-            box-shadow: 0 0 12px rgba(0, 255, 204, 0.3);
+            box-shadow: 0 0 12px rgba(255, 153, 51, 0.4);
         }
         .coin-box {
             border-color: #ffd700;
             color: #ffd700;
-            box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+        }
+        .board-status {
+            text-align: center;
+            font-size: 14px;
+            color: #00ffcc;
+            font-weight: bold;
+            text-shadow: 0 0 8px #00ffcc;
+            margin-top: 5px;
+            pointer-events: none;
         }
         /* Screens */
         .overlay-screen {
@@ -64,8 +66,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(11, 12, 16, 0.88);
-            backdrop-filter: blur(6px);
+            background: rgba(11, 12, 16, 0.9);
+            backdrop-filter: blur(8px);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -77,53 +79,84 @@
             display: none !important;
         }
         h1 {
-            font-size: 44px;
-            color: #00ffcc;
+            font-size: 40px;
+            color: #ff9933;
             text-transform: uppercase;
-            letter-spacing: 4px;
-            margin-bottom: 10px;
-            text-shadow: 0 0 25px #00ffcc;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+            text-shadow: 0 0 20px #ff9933;
             text-align: center;
         }
         p.subtitle {
             color: #ccc;
-            font-size: 16px;
-            margin-bottom: 30px;
+            font-size: 14px;
+            margin-bottom: 20px;
             text-align: center;
             max-width: 320px;
-            line-height: 1.5;
+            line-height: 1.4;
+        }
+        .select-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 15px 25px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 320px;
+        }
+        .select-section h3 {
+            color: #00ffcc;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .options-row {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+        }
+        .opt-btn {
+            background: #222;
+            border: 2px solid #555;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .opt-btn.active {
+            border-color: #ff9933;
+            background: rgba(255, 153, 51, 0.2);
+            box-shadow: 0 0 10px rgba(255, 153, 51, 0.5);
         }
         .final-stats {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 20px 40px;
+            padding: 15px 35px;
             border-radius: 16px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             text-align: center;
             color: white;
-            font-size: 22px;
+            font-size: 20px;
         }
         .final-stats div {
-            margin: 8px 0;
+            margin: 6px 0;
         }
         .btn {
-            background: linear-gradient(135deg, #00ffcc, #0099ff);
+            background: linear-gradient(135deg, #ff9933, #ff3366);
             border: none;
-            padding: 15px 45px;
-            font-size: 22px;
+            padding: 14px 40px;
+            font-size: 20px;
             font-weight: bold;
-            color: #000;
+            color: #fff;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 0 25px rgba(0, 255, 204, 0.6);
-            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 0 20px rgba(255, 153, 51, 0.6);
+            transition: transform 0.2s;
         }
         .btn:hover {
-            transform: scale(1.06);
-            box-shadow: 0 0 35px rgba(0, 255, 204, 0.9);
-        }
-        .btn:active {
-            transform: scale(0.96);
+            transform: scale(1.05);
         }
     </style>
     <!-- Three.js CDN -->
@@ -133,15 +166,35 @@
 
     <div id="ui-layer">
         <div class="hud">
-            <div class="stat-box">SCORE: <span id="score-val">0</span></div>
+            <div>
+                <div class="stat-box">SCORE: <span id="score-val">0</span></div>
+                <div class="board-status" id="board-status-text">HOVERBOARD: OFF (Double Tap)</div>
+            </div>
             <div class="stat-box coin-box">🪙 <span id="coin-val">0</span></div>
         </div>
     </div>
 
-    <!-- Start Menu -->
+    <!-- Start Menu with Character & Hoverboard Customization -->
     <div id="start-screen" class="overlay-screen">
         <h1>AETHELRUN</h1>
-        <p class="subtitle">PC: Arrow Keys / A, D, Space<br>Mobile: Swipe Left, Right & Up to Jump!</p>
+        <p class="subtitle">Delhi Metro Track Edition<br>Double Tap anywhere during game to activate Hoverboard!</p>
+        
+        <div class="select-section">
+            <h3>CHOOSE CHARACTER</h3>
+            <div class="options-row">
+                <button class="opt-btn active" onclick="setChar(0, this)">Cyber boy</button>
+                <button class="opt-btn" onclick="setChar(1, this)">Delhi Runner</button>
+            </div>
+        </div>
+
+        <div class="select-section">
+            <h3>CHOOSE HOVERBOARD</h3>
+            <div class="options-row">
+                <button class="opt-btn active" onclick="setBoard(0, this)">Neon Board</button>
+                <button class="opt-btn" onclick="setBoard(1, this)">Gold Cruiser</button>
+            </div>
+        </div>
+
         <button class="btn" onclick="startGame()">TAP TO PLAY</button>
     </div>
 
@@ -149,20 +202,36 @@
     <div id="game-over-screen" class="overlay-screen hidden">
         <h1 style="color: #ff3366; text-shadow: 0 0 20px #ff3366;">CRASHED!</h1>
         <div class="final-stats">
-            <div>Score: <strong id="final-score" style="color:#00ffcc;">0</strong></div>
+            <div>Score: <strong id="final-score" style="color:#ff9933;">0</strong></div>
             <div>Coins: <strong id="final-coins" style="color:#ffd700;">0</strong></div>
         </div>
         <button class="btn" onclick="startGame()">PLAY AGAIN</button>
     </div>
 
     <script>
-        // --- GAME SETUP & VARIABLES ---
+        // --- GAME CONFIG & SELECTIONS ---
         const LANES = [-2.6, 0, 2.6];
-        let currentLane = 1; // 0 = Left, 1 = Center, 2 = Right
+        let currentLane = 1;
         let score = 0;
         let coins = 0;
         let gameSpeed = 0.35;
         let isGameRunning = false;
+
+        let selectedCharacter = 0; // 0 or 1
+        let selectedBoard = 0;     // 0 or 1
+        let hasHoverboard = false; // Active hoverboard protection
+
+        function setChar(index, btn) {
+            selectedCharacter = index;
+            document.querySelectorAll('.select-section')[0].querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function setBoard(index, btn) {
+            selectedBoard = index;
+            document.querySelectorAll('.select-section')[1].querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
 
         // Jump Physics
         let isJumping = false;
@@ -173,8 +242,8 @@
 
         // --- THREE.JS SCENE ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0b0c10);
-        scene.fog = new THREE.FogExp2(0x0b0c10, 0.018);
+        scene.background = new THREE.Color(0x0d0e15);
+        scene.fog = new THREE.FogExp2(0x0d0e15, 0.016);
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 150);
         camera.position.set(0, 4.8, 7.5);
@@ -186,63 +255,99 @@
         document.body.appendChild(renderer.domElement);
 
         // --- LIGHTS ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        const dirLight = new THREE.DirectionalLight(0xffcc88, 0.9);
         dirLight.position.set(12, 25, 15);
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // --- TRACK & ENVIRONMENT ---
-        const groundGeo = new THREE.PlaneGeometry(14, 300);
-        const groundMat = new THREE.MeshStandardMaterial({ color: 0x161922, roughness: 0.9 });
+        // --- DELHI ROAD & METRO ENVIRONMENT ---
+        const groundGeo = new THREE.PlaneGeometry(16, 300);
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x1c1e24, roughness: 0.8 });
         const ground = new THREE.Mesh(groundGeo, groundMat);
         ground.rotation.x = -Math.PI / 2;
         ground.position.z = -120;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Neon Lane Dividers
-        const lineMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-        [-3.9, -1.3, 1.3, 3.9].forEach(xPos => {
-            const lineGeo = new THREE.PlaneGeometry(0.08, 300);
+        // Delhi Road Dividers / Tracks
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xff9933 });
+        [-4.2, -1.4, 1.4, 4.2].forEach(xPos => {
+            const lineGeo = new THREE.PlaneGeometry(0.1, 300);
             const line = new THREE.Mesh(lineGeo, lineMat);
             line.rotation.x = -Math.PI / 2;
             line.position.set(xPos, 0.01, -120);
             scene.add(line);
         });
 
-        // Moving Railway Sleepers (for speed illusion)
+        // Delhi Metro Pillars on sides (Theme element)
+        const pillars = [];
+        const pillarGeo = new THREE.BoxGeometry(1.2, 12, 1.2);
+        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x555b6e, roughness: 0.5 });
+        for (let i = 0; i < 20; i++) {
+            const pLeft = new THREE.Mesh(pillarGeo, pillarMat);
+            pLeft.position.set(-6.5, 6, -i * 15);
+            scene.add(pLeft);
+            pillars.push(pLeft);
+
+            const pRight = new THREE.Mesh(pillarGeo, pillarMat);
+            pRight.position.set(6.5, 6, -i * 15);
+            scene.add(pRight);
+            pillars.push(pRight);
+        }
+
+        // Moving Track Sleepers
         const sleepers = [];
-        const sleeperGeo = new THREE.BoxGeometry(8.5, 0.04, 0.35);
-        const sleeperMat = new THREE.MeshBasicMaterial({ color: 0x262b38 });
+        const sleeperGeo = new THREE.BoxGeometry(9.0, 0.04, 0.4);
+        const sleeperMat = new THREE.MeshBasicMaterial({ color: 0x333945 });
         for (let i = 0; i < 35; i++) {
             const s = new THREE.Mesh(sleeperGeo, sleeperMat);
-            s.position.set(0, 0.01, -i * 3.5);
+            s.position.set(0, 0.02, -i * 3.5);
             scene.add(s);
             sleepers.push(s);
         }
 
-        // --- PLAYER CHARACTER ---
+        // --- PLAYER CHARACTER GROUP ---
         const playerGroup = new THREE.Group();
         
-        // Body
-        const bodyGeo = new THREE.BoxGeometry(0.9, 1.3, 0.7);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00ffcc, roughness: 0.2, metalness: 0.3 });
-        const playerBody = new THREE.Mesh(bodyGeo, bodyMat);
-        playerBody.castShadow = true;
-        playerGroup.add(playerBody);
+        // Body & Head meshes created dynamically based on character selection
+        let playerBody, playerHead, hoverboardMesh;
 
-        // Visor / Head detail
-        const visorGeo = new THREE.BoxGeometry(0.75, 0.25, 0.75);
-        const visorMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-        const visor = new THREE.Mesh(visorGeo, visorMat);
-        visor.position.set(0, 0.3, 0);
-        playerGroup.add(visor);
+        function buildPlayer() {
+            // Clear old meshes
+            while(playerGroup.children.length > 0){ 
+                playerGroup.remove(playerGroup.children[0]); 
+            }
 
-        playerGroup.position.set(LANES[1], PLAYER_BASE_Y, 0);
-        scene.add(playerGroup);
+            const bodyColor = selectedCharacter === 0 ? 0x00ffcc : 0xff3366;
+            const bodyGeo = new THREE.BoxGeometry(0.85, 1.2, 0.65);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.2 });
+            playerBody = new THREE.Mesh(bodyGeo, bodyMat);
+            playerBody.castShadow = true;
+            playerGroup.add(playerBody);
+
+            const headGeo = new THREE.BoxGeometry(0.65, 0.65, 0.65);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+            playerHead = new THREE.Mesh(headGeo, headMat);
+            playerHead.position.set(0, 0.9, 0);
+            playerGroup.add(playerHead);
+
+            // Hoverboard Mesh (Hidden initially)
+            const boardColor = selectedBoard === 0 ? 0x00ffcc : 0xffd700;
+            const boardGeo = new THREE.BoxGeometry(1.4, 0.12, 0.6);
+            const boardMat = new THREE.MeshStandardMaterial({ color: boardColor, metalness: 0.8, roughness: 0.1 });
+            hoverboardMesh = new THREE.Mesh(boardGeo, boardMat);
+            hoverboardMesh.position.set(0, -0.7, 0);
+            hoverboardMesh.visible = false;
+            playerGroup.add(hoverboardMesh);
+
+            playerGroup.position.set(LANES[1], PLAYER_BASE_Y, 0);
+            scene.add(playerGroup);
+        }
+
+        buildPlayer();
 
         // --- OBSTACLES & COINS ARRAYS ---
         let obstacles = [];
@@ -254,19 +359,19 @@
             const typeRand = Math.random();
 
             if (typeRand < 0.45) {
-                // Tall Moving Train / Pillar
-                const trainGeo = new THREE.BoxGeometry(2.1, 3.2, 6);
-                const trainMat = new THREE.MeshStandardMaterial({ color: 0xff2a5f, roughness: 0.3 });
+                // Delhi Metro Train / Heavy Barrier
+                const trainGeo = new THREE.BoxGeometry(2.1, 3.4, 6.5);
+                const trainMat = new THREE.MeshStandardMaterial({ color: 0x0044cc, roughness: 0.3 });
                 const train = new THREE.Mesh(trainGeo, trainMat);
-                train.position.set(LANES[randomLane], 1.6, -95);
+                train.position.set(LANES[randomLane], 1.7, -95);
                 train.castShadow = true;
-                train.userData = { type: 'train', w: 2.0, h: 3.2, d: 5.8 };
+                train.userData = { type: 'train', w: 2.0, h: 3.4, d: 6.2 };
                 scene.add(train);
                 obstacles.push(train);
             } else if (typeRand < 0.8) {
-                // Low Barrier (Can jump over)
+                // Low Road Barrier (Jump over)
                 const barGeo = new THREE.BoxGeometry(2.1, 1.0, 0.5);
-                const barMat = new THREE.MeshStandardMaterial({ color: 0xff8800, roughness: 0.4 });
+                const barMat = new THREE.MeshStandardMaterial({ color: 0xff9933, roughness: 0.4 });
                 const barrier = new THREE.Mesh(barGeo, barMat);
                 barrier.position.set(LANES[randomLane], 0.5, -95);
                 barrier.castShadow = true;
@@ -275,7 +380,7 @@
                 obstacles.push(barrier);
             }
 
-            // Spawn line of 3 Coins in a free lane
+            // Spawn Coins
             const coinLane = (randomLane + 1 + Math.floor(Math.random() * 2)) % 3;
             const coinGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.15, 16);
             const coinMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
@@ -289,13 +394,9 @@
             }
         }
 
-        // --- CONTROLS ---
-        function moveLeft() {
-            if (currentLane > 0) currentLane--;
-        }
-        function moveRight() {
-            if (currentLane < 2) currentLane++;
-        }
+        // --- CONTROLS & DOUBLE TAP FOR HOVERBOARD ---
+        function moveLeft() { if (currentLane > 0) currentLane--; }
+        function moveRight() { if (currentLane < 2) currentLane++; }
         function jump() {
             if (!isJumping) {
                 isJumping = true;
@@ -303,18 +404,45 @@
             }
         }
 
+        function toggleHoverboard() {
+            if (!isGameRunning) return;
+            hasHoverboard = !hasHoverboard;
+            if (hoverboardMesh) hoverboardMesh.visible = hasHoverboard;
+            const statusText = document.getElementById('board-status-text');
+            if (hasHoverboard) {
+                statusText.innerText = "HOVERBOARD: ACTIVE (Protected!)";
+                statusText.style.color = "#ffd700";
+            } else {
+                statusText.innerText = "HOVERBOARD: OFF (Double Tap)";
+                statusText.style.color = "#00ffcc";
+            }
+        }
+
+        // Keyboard Controls
         window.addEventListener('keydown', (e) => {
             if (!isGameRunning) return;
             if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
             if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
             if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') jump();
+            if (e.key === 'Shift') toggleHoverboard();
         });
 
+        // Touch & Double Tap Detection
         let touchStartX = 0;
         let touchStartY = 0;
+        let lastTapTime = 0;
+
         window.addEventListener('touchstart', (e) => {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
+
+            // Double tap check
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTapTime;
+            if (tapLength < 300 && tapLength > 0) {
+                toggleHoverboard();
+            }
+            lastTapTime = currentTime;
         }, { passive: true });
 
         window.addEventListener('touchend', (e) => {
@@ -332,6 +460,7 @@
 
         // --- START & RESET GAME ---
         function startGame() {
+            buildPlayer(); // apply selected character & board
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('game-over-screen').classList.add('hidden');
 
@@ -346,6 +475,11 @@
             gameSpeed = 0.38;
             isJumping = false;
             yVelocity = 0;
+            hasHoverboard = false;
+            if (hoverboardMesh) hoverboardMesh.visible = false;
+            document.getElementById('board-status-text').innerText = "HOVERBOARD: OFF (Double Tap)";
+            document.getElementById('board-status-text').style.color = "#00ffcc";
+
             playerGroup.position.set(LANES[1], PLAYER_BASE_Y, 0);
             playerGroup.rotation.set(0, 0, 0);
 
@@ -356,6 +490,15 @@
         }
 
         function triggerGameOver() {
+            if (hasHoverboard) {
+                // Hoverboard absorbs the crash and breaks!
+                hasHoverboard = false;
+                if (hoverboardMesh) hoverboardMesh.visible = false;
+                document.getElementById('board-status-text').innerText = "HOVERBOARD BROKEN! (Double Tap)";
+                document.getElementById('board-status-text').style.color = "#ff3366";
+                return;
+            }
+
             isGameRunning = false;
             document.getElementById('final-score').innerText = Math.floor(score);
             document.getElementById('final-coins').innerText = coins;
@@ -382,9 +525,15 @@
                     }
                 }
 
+                // Move Track & Pillars
                 sleepers.forEach(s => {
                     s.position.z += gameSpeed;
                     if (s.position.z > 8) s.position.z -= 35 * 3.5;
+                });
+
+                pillars.forEach(p => {
+                    p.position.z += gameSpeed;
+                    if (p.position.z > 10) p.position.z -= 20 * 15;
                 });
 
                 spawnCounter++;
@@ -394,6 +543,7 @@
                     spawnCounter = 0;
                 }
 
+                // Obstacles & Collisions
                 for (let i = obstacles.length - 1; i >= 0; i--) {
                     const obs = obstacles[i];
                     obs.position.z += gameSpeed;
@@ -415,6 +565,7 @@
                     }
                 }
 
+                // Coins
                 for (let i = coinItems.length - 1; i >= 0; i--) {
                     const c = coinItems[i];
                     c.position.z += gameSpeed;
