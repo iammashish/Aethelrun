@@ -401,7 +401,7 @@
                     const zDiff = Math.abs(playerGroup.position.z - obs.position.z);
                     const xDiff = Math.abs(playerGroup.position.x - obs.position.x);
 
-                    if (zDiff < (0.35 + obs.userData.d / 2) xDiff < (0.45 + obs.userData.w / 2)) {
+                    if (zDiff < (0.35 + obs.userData.d / 2) && xDiff < (0.45 + obs.userData.w / 2)) {
                         const playerBottom = playerGroup.position.y - 0.65;
                         const obsTop = obs.position.y + (obs.userData.h / 2);
                         if (playerBottom < obsTop - 0.15) {
